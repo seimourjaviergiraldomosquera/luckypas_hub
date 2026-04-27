@@ -1,0 +1,38 @@
+name: luckypas_hub
+description: Lotería mundial y seguridad local.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0' # Subimos ligeramente la base para mayor estabilidad en 2026
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Gestión de datos local (Contraseñas y Favoritos)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # ACTUALIZADO: Versión moderna para evitar el error de Namespace
+  google_mobile_ads: ^6.0.0
+
+  # Diseño y Utilidades
+  font_awesome_flutter: ^10.6.0
+  google_fonts: ^6.1.0
+  share_plus: ^12.0.2
+  vibration: ^3.1.8
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.6
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/l10n/
