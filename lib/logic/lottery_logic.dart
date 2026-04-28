@@ -108,50 +108,61 @@ class LotteryLogic {
     };
   }
 
-  // NUEVO: MOTOR DE INFORMACIÓN DETALLADA (PERSONALIDAD Y COMPATIBILIDAD)
+  // MOTOR DE INFORMACIÓN DETALLADA (PERSONALIDAD Y COMPATIBILIDAD)
   static String getInfoText(String tipo, String valor, String idioma) {
+    // Traducciones para los títulos según el idioma
+    bool isZh = idioma == "zh";
+    String pLabel = isZh ? "个性" : "Personalidad";
+    String cLabel = isZh ? "兼容性" : "Compatibilidad";
+
     Map<String, Map<String, String>> infoZodiaco = {
-      "Aries": {"p": "Valiente y entusiasta.", "c": "Leo y Sagitario."},
-      "Tauro": {"p": "Paciente y decidido.", "c": "Virgo y Capricornio."},
-      "Géminis": {"p": "Curioso y adaptable.", "c": "Libra y Acuario."},
-      "Cáncer": {"p": "Intuitivo y protector.", "c": "Escorpio y Piscis."},
-      "Leo": {"p": "Generoso y líder.", "c": "Aries y Sagitario."},
-      "Virgo": {"p": "Analítico y práctico.", "c": "Tauro y Capricornio."},
-      "Libra": {"p": "Diplomático y sociable.", "c": "Géminis y Acuario."},
-      "Escorpio": {"p": "Apasionado y decidido.", "c": "Cáncer y Piscis."},
-      "Sagitario": {"p": "Optimista y libre.", "c": "Aries y Leo."},
-      "Capricornio": {"p": "Disciplinado y ambicioso.", "c": "Tauro y Virgo."},
-      "Acuario": {"p": "Original e independiente.", "c": "Géminis y Libra."},
-      "Piscis": {"p": "Compasivo y artístico.", "c": "Cáncer y Escorpio."},
+      "Aries": {"p": isZh ? "勇敢且充满热情" : "Valiente y entusiasta.", "c": "Leo, Sagitario."},
+      "Tauro": {"p": isZh ? "耐心且果断" : "Paciente y decidido.", "c": "Virgo, Capricornio."},
+      "Géminis": {"p": isZh ? "好奇且适应力强" : "Curioso y adaptable.", "c": "Libra, Acuario."},
+      "Cáncer": {"p": isZh ? "直觉敏锐且具有保护欲" : "Intuitivo y protector.", "c": "Escorpio, Piscis."},
+      "Leo": {"p": isZh ? "慷慨且具领导力" : "Generoso y líder.", "c": "Aries, Sagitario."},
+      "Virgo": {"p": isZh ? "善于分析且务实" : "Analítico y práctico.", "c": "Tauro, Capricornio."},
+      "Libra": {"p": isZh ? "外交手腕强且善于交际" : "Diplomático y sociable.", "c": "Géminis, Acuario."},
+      "Escorpio": {"p": isZh ? "热情且果断" : "Apasionado y decidido.", "c": "Cáncer, Piscis."},
+      "Sagitario": {"p": isZh ? "乐观且向往自由" : "Optimista y libre.", "c": "Aries, Leo."},
+      "Capricornio": {"p": isZh ? "自律且有雄心" : "Disciplinado y ambicioso.", "c": "Tauro, Virgo."},
+      "Acuario": {"p": isZh ? "独创且独立" : "Original e independiente.", "c": "Géminis, Libra."},
+      "Piscis": {"p": isZh ? "富有同情心且具艺术气息" : "Compasivo y artístico.", "c": "Cáncer, Escorpio."},
     };
 
     Map<String, Map<String, String>> infoChino = {
-      "Rata": {"p": "Ingeniosa y versátil.", "c": "Dragón y Mono."},
-      "Buey": {"p": "Fuerte y confiable.", "c": "Gallo y Serpiente."},
-      "Tigre": {"p": "Valiente y aventurero.", "c": "Caballo y Perro."},
-      "Conejo": {"p": "Amable y elegante.", "c": "Cerdo y Cabra."},
-      "Dragón": {"p": "Poderoso y vital.", "c": "Rata y Mono."},
-      "Serpiente": {"p": "Sabia y enigmática.", "c": "Buey y Gallo."},
-      "Caballo": {"p": "Energético y cálido.", "c": "Tigre y Perro."},
-      "Cabra": {"p": "Gentil y creativa.", "c": "Conejo y Cerdo."},
-      "Mono": {"p": "Divertido e inteligente.", "c": "Rata y Dragón."},
-      "Gallo": {"p": "Orgulloso y puntual.", "c": "Buey y Serpiente."},
-      "Perro": {"p": "Leal y honesto.", "c": "Caballo y Tigre."},
-      "Cerdo": {"p": "Diligente y generoso.", "c": "Conejo y Cabra."},
+      "Rata": {"p": isZh ? "机智且多才多艺" : "Ingeniosa y versátil.", "c": "Dragón, Mono."},
+      "Buey": {"p": isZh ? "强壮且可靠" : "Fuerte y confiable.", "c": "Gallo, Serpiente."},
+      "Tigre": {"p": isZh ? "勇敢且冒险" : "Valiente y aventurero.", "c": "Caballo, Perro."},
+      "Conejo": {"p": isZh ? "温柔且优雅" : "Amable y elegante.", "c": "Cerdo, Cabra."},
+      "Dragón": {"p": isZh ? "强大且充满活力" : "Poderoso y vital.", "c": "Rata, Mono."},
+      "Serpiente": {"p": isZh ? "聪明且神秘" : "Sabia y enigmática.", "c": "Buey, Gallo."},
+      "Caballo": {"p": isZh ? "精力充充沛且热情" : "Energético y cálido.", "c": "Tigre, Perro."},
+      "Cabra": {"p": isZh ? "温柔且富有创造力" : "Gentil y creativa.", "c": "Conejo, Cerdo."},
+      "Mono": {"p": isZh ? "幽默且聪明" : "Divertido e inteligente.", "c": "Rata, Dragón."},
+      "Gallo": {"p": isZh ? "自豪且准时" : "Orgulloso y puntual.", "c": "Buey, Serpiente."},
+      "Perro": {"p": isZh ? "忠诚且诚实" : "Leal y honesto.", "c": "Caballo, Tigre."},
+      "Cerdo": {"p": isZh ? "勤奋且慷慨" : "Diligente y generoso.", "c": "Conejo, Cabra."},
     };
 
     if (tipo == "vibracion") {
-      return "La vibración es tu nivel de sintonía energética hoy. Se calcula uniendo tu energía personal con la del universo.";
+      return isZh
+          ? "振动是你今天的能量调谐水平。它是根据你的名字和日期计算的。"
+          : "La vibración es tu nivel de sintonía energética hoy. Se calcula uniendo tu energía personal con la del universo.";
     }
 
     if (tipo == "zodiaco" && infoZodiaco.containsKey(valor)) {
-      return "Zodíaco ($valor):\n• Personalidad: ${infoZodiaco[valor]!['p']}\n• Compatibilidad: ${infoZodiaco[valor]!['c']}";
+      return isZh
+          ? "黄道十二宫 ($valor):\n• $pLabel: ${infoZodiaco[valor]!['p']}\n• $cLabel: ${infoZodiaco[valor]!['c']}"
+          : "Zodíaco ($valor):\n• $pLabel: ${infoZodiaco[valor]!['p']}\n• $cLabel: ${infoZodiaco[valor]!['c']}";
     }
 
     if (tipo == "chino" && infoChino.containsKey(valor)) {
-      return "Horóscopo Chino ($valor):\n• Personalidad: ${infoChino[valor]!['p']}\n• Compatibilidad: ${infoChino[valor]!['c']}";
+      return isZh
+          ? "生肖 ($valor):\n• $pLabel: ${infoChino[valor]!['p']}\n• $cLabel: ${infoChino[valor]!['c']}"
+          : "Horóscopo Chino ($valor):\n• $pLabel: ${infoChino[valor]!['p']}\n• $cLabel: ${infoChino[valor]!['c']}";
     }
 
-    return "Información mística no disponible por el momento.";
+    return isZh ? "暂无神秘信息。" : "Información mística no disponible por el momento.";
   }
 }
