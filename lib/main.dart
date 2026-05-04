@@ -12,7 +12,8 @@ import 'logic/aguero_logic.dart';
 import 'presentation/aguero_screen.dart';
 import 'presentation/favorites_screen.dart';
 import 'presentation/luck_screen.dart';
-import 'presentation/components/dialogs.dart'; // NUEVO IMPORT
+import 'presentation/components/dialogs.dart';
+import 'presentation/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -110,6 +111,12 @@ class _HomeScreenState extends State<HomeScreen> {
       onShowPQR: _showPQRDialog,
       onShowCountrySelector: _showCountrySelector,
       onShowMysticLoading: _showMysticLoading,
+      onShowSettings: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SettingsScreen(getLabel: _getLabel)),
+        ).then((_) => setState(() {}));
+      },
       onReorder: (oldIndex, newIndex) {
         setState(() {
           if (newIndex > oldIndex) newIndex -= 1;
@@ -228,6 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _checkResults(String winningNumber, String lotteryName) {
     var boxFavs = Hive.box('favorites');
     var boxHistory = Hive.box('resultsHistory');
+    bool huboAcierto = false;
     String message = "Sigue canalizando tu suerte...";
     Color color = Colors.grey;
 
@@ -237,15 +245,23 @@ class _HomeScreenState extends State<HomeScreen> {
         if (favNum == winningNumber) {
           message = "¡CONEXIÓN TOTAL! El número $winningNumber en $lotteryName fue un acierto místico.";
           color = Colors.green;
+          huboAcierto = true;
           break;
         } else if (winningNumber.endsWith(favNum.substring(favNum.length >= 2 ? favNum.length - 2 : 0))) {
           message = "¡CASI! Atrapaste las últimas cifras en $lotteryName. Tu vibración es alta.";
           color = Colors.amber;
+          huboAcierto = true;
         }
       }
     }
 
-    boxHistory.add({'lottery': lotteryName, 'number': winningNumber, 'date': DateFormat('dd/MM HH:mm').format(DateTime.now())});
+    boxHistory.add({
+      'lottery': lotteryName,
+      'number': winningNumber,
+      'date': DateFormat('dd/MM HH:mm').format(DateTime.now()),
+      'match': huboAcierto,
+    });
+
     AppDialogs.showIntuitionReport(context, message, color);
     _resultCheckerController.clear();
     oracleSelectedLottery = null;
@@ -285,31 +301,137 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: TextField(controller: editController, style: const TextStyle(color: Colors.amber, fontSize: 16), decoration: InputDecoration(labelText: _getLabel('editar_nombre'))),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_getLabel('probabilidad'), style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            const SizedBox(height: 8),
-            Text("${probabilidad.toStringAsFixed(1)}%", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
-            const Divider(color: Colors.amber, height: 30),
-            Text(generatedNumber, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5)),
-            const SizedBox(height: 20),
-            if (gameName == "Super Astro" || gameName.contains("Lotería") || gameName.contains("Sueño") || gameName.contains("Diomedes") || gameName.contains("Lotto"))
-              if (!_videoVisto) ElevatedButton.icon(onPressed: () => setDialogState(() => _videoVisto = true), icon: const Icon(Icons.play_circle_fill), label: const Text("REVELAR SIGNO / SERIAL"))
-              else Text(gameName == "Super Astro" ? "Signo: ${LotteryLogic.getRandomSign()}" : "Serial: ${LotteryLogic.generateThreeDigits()}", style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
+      builder: (context) => StatefulBuilder(builder: (context, setDialogState) {
+        Widget misticaWidget;
+        String contentToSave = generatedNumber;
+
+        if (gameName == "Baloto") {
+          var balotoData = LotteryLogic.generateBaloto();
+          contentToSave = "${balotoData['numbers']} | SB: ${balotoData['superball']}";
+          misticaWidget = Column(
+            children: [
+              const Text("Números de la Suerte", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 10),
+              Text(balotoData['numbers'],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)
+              ),
+              const SizedBox(height: 15),
+              if (!_videoVisto)
+                ElevatedButton.icon(
+                    onPressed: () => setDialogState(() => _videoVisto = true),
+                    icon: const Icon(Icons.play_circle_fill),
+                    label: const Text("REVELAR SUPERBOLOTA")
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.redAccent)
+                  ),
+                  child: Text("SUPERBOLOTA: ${balotoData['superball']}",
+                      style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)
+                  ),
+                ),
+            ],
+          );
+        } else if (gameName == "Super Astro") {
+          String signo = LotteryLogic.getRandomSign();
+          contentToSave = "$generatedNumber - $signo";
+          misticaWidget = Column(
+            children: [
+              Text(generatedNumber, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5)),
+              const SizedBox(height: 10),
+              if (!_videoVisto)
+                ElevatedButton.icon(
+                    onPressed: () => setDialogState(() => _videoVisto = true),
+                    icon: const Icon(Icons.play_circle_fill),
+                    label: const Text("REVELAR SIGNO")
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.stars, color: Colors.amber, size: 18),
+                    const SizedBox(width: 8),
+                    Text(signo, style: const TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+            ],
+          );
+        } else if (gameName.contains("Lotería")) {
+          String serial = LotteryLogic.generateThreeDigits();
+          contentToSave = "$generatedNumber (Serie: $serial)";
+          misticaWidget = Column(
+            children: [
+              Text(generatedNumber, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5)),
+              const SizedBox(height: 10),
+              if (!_videoVisto)
+                ElevatedButton.icon(
+                    onPressed: () => setDialogState(() => _videoVisto = true),
+                    icon: const Icon(Icons.play_circle_fill),
+                    label: const Text("REVELAR SERIE")
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  decoration: BoxDecoration(
+                      border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(10)
+                  ),
+                  child: Text("SERIE: $serial", style: const TextStyle(color: Colors.amber, fontSize: 18)),
+                ),
+            ],
+          );
+        } else {
+          misticaWidget = Text(generatedNumber, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5));
+        }
+
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.amber), borderRadius: BorderRadius.circular(20)),
+          title: TextField(
+              controller: editController,
+              style: const TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                  labelText: _getLabel('editar_nombre'),
+                  labelStyle: const TextStyle(color: Colors.grey, fontSize: 12)
+              )
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_getLabel('probabilidad'), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 8),
+              Text("${probabilidad.toStringAsFixed(1)}%", style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
+              const Divider(color: Colors.amber, height: 30),
+              misticaWidget,
+              const SizedBox(height: 20),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () { _videoVisto = false; Navigator.pop(context); }, child: const Text("CERRAR", style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+              onPressed: () {
+                Hive.box('favorites').add({
+                  'title': editController.text,
+                  'content': contentToSave,
+                  'prob': probabilidad,
+                  'date': DateFormat('dd/MM HH:mm').format(DateTime.now()),
+                  'isWinner': false
+                });
+                _videoVisto = false;
+                Navigator.pop(context);
+                setState(() {});
+              },
+              child: const Text("GUARDAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            ),
           ],
-        ),
-        actions: [
-          TextButton(onPressed: () { _videoVisto = false; Navigator.pop(context); }, child: const Text("CERRAR")),
-          ElevatedButton(onPressed: () {
-            Hive.box('favorites').add({'title': editController.text, 'content': generatedNumber, 'prob': probabilidad, 'date': DateFormat('dd/MM HH:mm').format(DateTime.now()), 'isWinner': false});
-            _videoVisto = false; Navigator.pop(context); setState(() {});
-          }, child: const Text("GUARDAR")),
-        ],
-      )),
+        );
+      }),
     );
   }
 

@@ -16,6 +16,7 @@ class LuckScreen extends StatelessWidget {
   final VoidCallback onShowCountrySelector;
   final Function(String, {String? customNumber}) onShowMysticLoading;
   final Function(int, int) onReorder;
+  final VoidCallback onShowSettings; // NUEVO PARÁMETRO
 
   const LuckScreen({
     super.key,
@@ -31,6 +32,7 @@ class LuckScreen extends StatelessWidget {
     required this.onShowCountrySelector,
     required this.onShowMysticLoading,
     required this.onReorder,
+    required this.onShowSettings, // REQUERIDO
   });
 
   @override
@@ -42,9 +44,9 @@ class LuckScreen extends StatelessWidget {
     final prediction = LotteryLogic.getIAPrediction(name, zodiac);
 
     // Cálculos de efectividad
-    int totalFavs = boxFavs.length;
+    int totalFavsCount = boxFavs.length;
     int ganados = boxFavs.values.where((f) => f['isWinner'] == true).length;
-    double efectividad = totalFavs > 0 ? (ganados / totalFavs) * 100 : 0.0;
+    double efectividad = totalFavsCount > 0 ? (ganados / totalFavsCount) * 100 : 0.0;
     String luckyLottery = "N/A";
     if (ganados > 0) {
       Map<String, int> counts = {};
@@ -94,9 +96,17 @@ class LuckScreen extends StatelessWidget {
               ),
             ],
           ),
-          IconButton(
-            onPressed: onShowPQR,
-            icon: const Icon(Icons.mark_as_unread_outlined, color: Colors.amber),
+          Row( // Agrupamos los iconos de la derecha
+            children: [
+              IconButton(
+                onPressed: onShowPQR,
+                icon: const Icon(Icons.mark_as_unread_outlined, color: Colors.amber),
+              ),
+              IconButton(
+                onPressed: onShowSettings, // LLAMADA A LA NUEVA PANTALLA
+                icon: const Icon(Icons.settings, color: Colors.amber),
+              ),
+            ],
           ),
         ],
       ),

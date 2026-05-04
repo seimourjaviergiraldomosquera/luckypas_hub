@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../logic/aguero_logic.dart';
+import '../logic/lottery_logic.dart'; // Importante para el botón de info
 
 class AgueroScreen extends StatelessWidget {
   final TextEditingController controller;
@@ -32,6 +33,30 @@ class AgueroScreen extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: "Sueño, placa o fecha...",
                 prefixIcon: const Icon(Icons.edit, color: Colors.amber),
+                // Botón de información añadido aquí
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.info_outline, color: Colors.amber),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1A1A1A),
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: Colors.amber),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        title: const Text("Sobre los Agüeros", style: TextStyle(color: Colors.amber)),
+                        content: Text(LotteryLogic.getInfoText("aguero", "", "es")),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("ENTENDIDO", style: TextStyle(color: Colors.amber)),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
             ),

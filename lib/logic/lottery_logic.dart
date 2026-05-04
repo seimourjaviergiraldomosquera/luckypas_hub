@@ -3,6 +3,8 @@ import 'dart:math';
 class LotteryLogic {
   static final Random _random = Random();
 
+  // --- LÓGICA DE GENERACIÓN DE NÚMEROS ---
+
   // Generar 4 cifras (Chance / Astro)
   static String generateFourDigits() {
     return _random.nextInt(10000).toString().padLeft(4, '0');
@@ -22,7 +24,21 @@ class LotteryLogic {
     return signs[_random.nextInt(signs.length)];
   }
 
-  // --- NUEVAS FUNCIONES DE PERSONALIZACIÓN MÍSTICA ---
+  // Generar Baloto (5 números del 1-43 + Superbolota 1-16)
+  static Map<String, dynamic> generateBaloto() {
+    List<int> numbers = [];
+    while (numbers.length < 5) {
+      int n = _random.nextInt(43) + 1;
+      if (!numbers.contains(n)) numbers.add(n);
+    }
+    numbers.sort();
+    return {
+      "numbers": numbers.join(" - "),
+      "superball": _random.nextInt(16) + 1
+    };
+  }
+
+  // --- LÓGICA DE PERFIL PERSONALIZADO ---
 
   // Calcular Signo Zodiacal según fecha
   static String getZodiacSign(DateTime date) {
@@ -42,7 +58,7 @@ class LotteryLogic {
     return "Capricornio";
   }
 
-  // Calcular Signo Chino con corrección de año lunar
+  // Calcular Signo Chino
   static String getChineseZodiac(DateTime date) {
     int year = date.year;
     if (date.month < 2 || (date.month == 2 && date.day < 10)) {
@@ -94,26 +110,23 @@ class LotteryLogic {
     };
   }
 
-  // Generar Baloto
-  static Map<String, dynamic> generateBaloto() {
-    List<int> numbers = [];
-    while (numbers.length < 5) {
-      int n = _random.nextInt(43) + 1;
-      if (!numbers.contains(n)) numbers.add(n);
-    }
-    numbers.sort();
-    return {
-      "numbers": numbers,
-      "superball": _random.nextInt(16) + 1
-    };
-  }
-
-  // MOTOR DE INFORMACIÓN DETALLADA (PERSONALIDAD Y COMPATIBILIDAD)
+  // --- MOTOR DE INFORMACIÓN DETALLADA ---
   static String getInfoText(String tipo, String valor, String idioma) {
-    // Traducciones para los títulos según el idioma
     bool isZh = idioma == "zh";
     String pLabel = isZh ? "个性" : "Personalidad";
     String cLabel = isZh ? "兼容性" : "Compatibilidad";
+
+    // Textos para Agüeros y Favoritos (Botón i)
+    if (tipo == "aguero") {
+      return isZh
+          ? "这种做法将你的直觉和梦想转化为幸运数字。"
+          : "Esta práctica transforma tus intuiciones y sueños en números de poder místico.";
+    }
+    if (tipo == "favorito") {
+      return isZh
+          ? "这个数字已经根据你的能量水平和抽奖活动进行了调整。"
+          : "Este número ha sido sintonizado según tu nivel de energía actual y el sorteo seleccionado.";
+    }
 
     Map<String, Map<String, String>> infoZodiaco = {
       "Aries": {"p": isZh ? "勇敢且充满热情" : "Valiente y entusiasta.", "c": "Leo, Sagitario."},
