@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 1. IMPORTACIÓN PARA NEQUI (Portapapeles)
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../logic/lottery_logic.dart';
 
 class LuckScreen extends StatelessWidget {
@@ -16,7 +18,7 @@ class LuckScreen extends StatelessWidget {
   final VoidCallback onShowCountrySelector;
   final Function(String, {String? customNumber}) onShowMysticLoading;
   final Function(int, int) onReorder;
-  final VoidCallback onShowSettings; // NUEVO PARÁMETRO
+  final VoidCallback onShowSettings;
 
   const LuckScreen({
     super.key,
@@ -32,8 +34,120 @@ class LuckScreen extends StatelessWidget {
     required this.onShowCountrySelector,
     required this.onShowMysticLoading,
     required this.onReorder,
-    required this.onShowSettings, // REQUERIDO
+    required this.onShowSettings,
   });
+
+  // 2. FUNCIÓN PARA EL DIÁLOGO DE AGRADECIMIENTO (Nequi + PayPal)
+  void _showDonationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Colors.amber),
+            borderRadius: BorderRadius.circular(15)),
+        title: const Text("Canaliza tu Gratitud",
+            style: TextStyle(color: Colors.amber, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Tu apoyo permite que la energía mística de la app siga creciendo. ¡Gracias por ser parte del destino!",
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            // OPCIÓN PAYPAL
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.blueAccent),
+              title: const Text("PayPal (Internacional)", style: TextStyle(color: Colors.white, fontSize: 14)),
+              onTap: () {
+                Navigator.pop(context);
+                _donarPayPal(context);
+              },
+            ),
+            // OPCIÓN NEQUI (CORREGIDA: Con Scroll para evitar Overflow)
+            ListTile(
+              leading: const Icon(Icons.phone_android, color: Colors.purpleAccent),
+              title: const Text("Nequi (Colombia)", style: TextStyle(color: Colors.white, fontSize: 14)),
+              subtitle: const Text("Cel: 317 426 7719", style: TextStyle(color: Colors.grey, fontSize: 11)),
+              onTap: () {
+                // Copiamos al portapapeles
+                Clipboard.setData(const ClipboardData(text: "3174267719"));
+                Navigator.pop(context); // Cierra el menú de donación
+
+                // Mostramos el QR / Llave
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: Colors.white, // Fondo blanco para lectura de QR
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    title: const Text("Llave Nequi",
+                        style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                    content: SizedBox(
+                      width: double.maxFinite,
+                      child: SingleChildScrollView( // <--- SOLUCIÓN AL DESBORDAMIENTO
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text("Escanea o usa el número para tu aporte místico.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.black54, fontSize: 12)),
+                            const SizedBox(height: 15),
+                            // Se añade errorBuilder por seguridad si el asset falla
+                            Image.asset(
+                              "assets/images/qr_nequi.png",
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const Column(
+                                children: [
+                                  Icon(Icons.qr_code_2, size: 80, color: Colors.grey),
+                                  Text("QR no encontrado", style: TextStyle(color: Colors.grey, fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            const Text("Número: 317 426 7719",
+                                style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                            const Text("(Número copiado al portapapeles)",
+                                style: TextStyle(color: Colors.purple, fontSize: 10, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("LISTO", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("LUEGO", style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _donarPayPal(BuildContext context) async {
+    final Uri url = Uri.parse("https://paypal.me/LuckyPassHub");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No se pudo abrir el portal de donación")),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +157,6 @@ class LuckScreen extends StatelessWidget {
     String hourly = birthHour != null ? LotteryLogic.getHourlySign(birthHour!) : "...";
     final prediction = LotteryLogic.getIAPrediction(name, zodiac);
 
-    // Cálculos de efectividad
     int totalFavsCount = boxFavs.length;
     int ganados = boxFavs.values.where((f) => f['isWinner'] == true).length;
     double efectividad = totalFavsCount > 0 ? (ganados / totalFavsCount) * 100 : 0.0;
@@ -60,7 +173,7 @@ class LuckScreen extends StatelessWidget {
     return Column(
       children: [
         const SizedBox(height: 50),
-        _buildTopBar(),
+        _buildTopBar(context),
         _buildMysticBanner(name, zodiac, chinese, hourly, prediction, efectividad, luckyLottery),
         _buildLotteryHeader(),
         const Divider(color: Colors.amber, thickness: 0.5),
@@ -78,7 +191,7 @@ class LuckScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
@@ -87,23 +200,31 @@ class LuckScreen extends StatelessWidget {
           Row(
             children: [
               IconButton(
-                onPressed: () => Share.share(getLabel('suerte_con')),
+                onPressed: () {
+                  const String packageName = "com.seimour.luckypas_hub";
+                  const String playStoreLink = "https://play.google.com/store/apps/details?id=$packageName";
+
+                  Share.share(
+                    '${getLabel('suerte_con')}\n\nDescarga la app aquí: $playStoreLink',
+                    subject: 'LuckyPass Hub',
+                  );
+                },
                 icon: const Icon(Icons.share, color: Colors.amber, size: 20),
               ),
               IconButton(
-                onPressed: () {}, // Futuro canal de apoyo
+                onPressed: () => _showDonationDialog(context),
                 icon: const Icon(Icons.volunteer_activism, color: Colors.redAccent, size: 20),
               ),
             ],
           ),
-          Row( // Agrupamos los iconos de la derecha
+          Row(
             children: [
               IconButton(
                 onPressed: onShowPQR,
                 icon: const Icon(Icons.mark_as_unread_outlined, color: Colors.amber),
               ),
               IconButton(
-                onPressed: onShowSettings, // LLAMADA A LA NUEVA PANTALLA
+                onPressed: onShowSettings,
                 icon: const Icon(Icons.settings, color: Colors.amber),
               ),
             ],

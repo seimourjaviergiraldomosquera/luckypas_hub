@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0' # Subimos ligeramente la base para mayor estabilidad en 2026
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -16,8 +16,12 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
+  # Biometría para el Baúl de Seguridad
+  local_auth: ^2.3.0
+
   # ACTUALIZADO: Versión moderna para evitar el error de Namespace
   google_mobile_ads: ^6.0.0
+  in_app_purchase: ^3.2.0
 
   # Diseño y Utilidades
   font_awesome_flutter: ^10.6.0
@@ -25,14 +29,35 @@ dependencies:
   share_plus: ^12.0.2
   vibration: ^3.1.8
   intl: ^0.20.2
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   hive_generator: ^2.0.1
   build_runner: ^2.4.6
+  # AÑADIDO PARA MARCA E IDENTIDAD
+  flutter_launcher_icons: "^0.13.1"
+  flutter_native_splash: "^2.4.0"
+
+# CONFIGURACIÓN DEL ICONO
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+
+# CONFIGURACIÓN DE PANTALLA DE CARGA
+flutter_native_splash:
+  color: "#000000"
+  image: "assets/icon/app_icon.png"
+  android_12:
+    image: "assets/icon/app_icon.png"
+    color: "#000000"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/l10n/
+    - assets/icon/ # AÑADIDO PARA RECONOCER EL ICONO
+    - assets/images/

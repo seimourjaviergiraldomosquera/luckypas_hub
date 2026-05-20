@@ -15,6 +15,19 @@ class LotteryLogic {
     return _random.nextInt(1000).toString().padLeft(3, '0');
   }
 
+  // NUEVO: Generar 5 números únicos del 1 al 39 para MiLoto
+  static String generateMiLoto() {
+    List<int> numbers = [];
+    while (numbers.length < 5) {
+      int next = _random.nextInt(39) + 1;
+      if (!numbers.contains(next)) {
+        numbers.add(next);
+      }
+    }
+    numbers.sort();
+    return numbers.join(" - ");
+  }
+
   // Obtener signo para Super Astro
   static String getRandomSign() {
     List<String> signs = [
