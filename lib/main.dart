@@ -11,6 +11,7 @@ import 'core/countries_data.dart';
 import 'logic/lottery_logic.dart';
 import 'logic/aguero_logic.dart';
 import 'logic/ad_manager.dart'; // 1. IMPORTACIÓN DEL MANAGER DE ANUNCIOS
+import 'logic/purchase_manager.dart'; // AÑADIDO: IMPORTACIÓN DEL GESTOR DE COMPRAS REALES
 import 'presentation/aguero_screen.dart';
 import 'presentation/favorites_screen.dart';
 import 'presentation/luck_screen.dart';
@@ -36,6 +37,9 @@ void main() async {
   await Hive.openBox('settings');
   await Hive.openBox('resultsHistory');
   await Hive.openBox('vault');
+
+  // AÑADIDO: Inicializa el escuchador de flujos de pago nativos de Google Play
+  PurchaseManager.initialize(() {});
 
   runApp(const LuckyPassApp());
 }
@@ -81,6 +85,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkUserProfile());
+  }
+
+  // AÑADIDO: Liberamos la suscripción del stream de facturación de Google Play
+  @override
+  void dispose() {
+    PurchaseManager.dispose();
+    super.dispose();
   }
 
   String get _currentLang => (selectedCountry == "China") ? "zh" : (selectedCountry == "USA") ? "en" : "es";
@@ -202,9 +213,18 @@ class _HomeScreenState extends State<HomeScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
             onPressed: () {
               Navigator.pop(context);
+              // MODIFICADO: Añadido callback onAdNotAvailable para evitar saltarse la restricción sin red
               AdManager.showRewardedAd(
                   onRewardEarned: () {
                     _showResultDialog(gameName, customNumber: customNumber);
+                  },
+                  onAdNotAvailable: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("🍀 Energía de red débil. Conéctate a internet para canalizar tu suerte."),
+                          backgroundColor: Colors.redAccent,
+                        )
+                    );
                   }
               );
             },
@@ -240,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
     List<Map<String, dynamic>> lotteries = CountriesData.data[selectedCountry] ?? [];
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
           shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.amber), borderRadius: BorderRadius.circular(15)),
@@ -265,15 +285,29 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
+            TextButton(
+                onPressed: () {
+                  _resultCheckerController.clear();
+                  oracleSelectedLottery = null;
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text("CANCELAR")
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
               onPressed: () {
                 if (oracleSelectedLottery != null && _resultCheckerController.text.isNotEmpty) {
-                  _checkResults(_resultCheckerController.text, oracleSelectedLottery!);
+                  final String checkedNumber = _resultCheckerController.text;
+                  final String checkedLottery = oracleSelectedLottery!;
+
                   _resultCheckerController.clear();
                   oracleSelectedLottery = null;
-                  Navigator.of(context).pop();
+
+                  Navigator.pop(dialogContext);
+
+                  Future.delayed(const Duration(milliseconds: 120), () {
+                    _checkResults(checkedNumber, checkedLottery);
+                  });
                 }
               },
               child: Text(_getLabel('verificar'), style: const TextStyle(color: Colors.black)),
@@ -452,14 +486,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)
               ),
               const SizedBox(height: 15),
-              // MODIFICADO: Conexión con AdManager y validación Premium
+              // MODIFICADO: Conexión con AdManager agregando onAdNotAvailable para evitar bypass sin internet
               if (!_videoVisto && !Hive.box('settings').get('isPremium', defaultValue: false))
                 ElevatedButton.icon(
                     onPressed: () {
                       AdManager.showRewardedAd(
-                        onRewardEarned: () {
-                          setDialogState(() => _videoVisto = true);
-                        },
+                          onRewardEarned: () {
+                            setDialogState(() => _videoVisto = true);
+                          },
+                          onAdNotAvailable: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("🍀 El oráculo visual no está listo. Verifica tu conexión a internet."),
+                                  backgroundColor: Colors.redAccent,
+                                )
+                            );
+                          }
                       );
                     },
                     icon: const Icon(Icons.play_circle_fill),
@@ -486,14 +528,22 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(generatedNumber, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5)),
               const SizedBox(height: 10),
-              // MODIFICADO: Conexión con AdManager y validación Premium
+              // MODIFICADO: Conexión con AdManager agregando onAdNotAvailable para evitar bypass sin internet
               if (!_videoVisto && !Hive.box('settings').get('isPremium', defaultValue: false))
                 ElevatedButton.icon(
                     onPressed: () {
                       AdManager.showRewardedAd(
-                        onRewardEarned: () {
-                          setDialogState(() => _videoVisto = true);
-                        },
+                          onRewardEarned: () {
+                            setDialogState(() => _videoVisto = true);
+                          },
+                          onAdNotAvailable: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("🍀 El oráculo visual no está listo. Verifica tu conexión a internet."),
+                                  backgroundColor: Colors.redAccent,
+                                )
+                            );
+                          }
                       );
                     },
                     icon: const Icon(Icons.play_circle_fill),
@@ -517,14 +567,22 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(generatedNumber, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5)),
               const SizedBox(height: 10),
-              // MODIFICADO: Conexión con AdManager y validación Premium
+              // MODIFICADO: Conexión con AdManager agregando onAdNotAvailable para evitar bypass sin internet
               if (!_videoVisto && !Hive.box('settings').get('isPremium', defaultValue: false))
                 ElevatedButton.icon(
                     onPressed: () {
                       AdManager.showRewardedAd(
-                        onRewardEarned: () {
-                          setDialogState(() => _videoVisto = true);
-                        },
+                          onRewardEarned: () {
+                            setDialogState(() => _videoVisto = true);
+                          },
+                          onAdNotAvailable: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("🍀 El oráculo visual no está listo. Verifica tu conexión a internet."),
+                                  backgroundColor: Colors.redAccent,
+                                )
+                            );
+                          }
                       );
                     },
                     icon: const Icon(Icons.play_circle_fill),

@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../logic/lottery_logic.dart';
-import '../logic/backup_logic.dart'; // Asegúrate de que esta ruta sea correcta
-import 'components/dialogs.dart';    // Asegúrate de que esta ruta sea correcta
+import '../logic/backup_logic.dart';
+import '../logic/ad_manager.dart';       // Importación del Gestor de Anuncios
+import '../logic/purchase_manager.dart'; // Importación del Gestor de Compras Reales
+import 'components/dialogs.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String Function(String) getLabel;
@@ -19,9 +21,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _selectedDate;
   int? _selectedHour;
 
-  int _videosVistos = 0;
+  int _videosVistos = 0; // CORREGIDO: Espacio eliminado para que compile perfecto
   bool _isUnlocked = false;
-  bool _isPremium = false; // Variable local para controlar el estado Premium
+  bool _isPremium = false;
 
   @override
   void initState() {
@@ -33,28 +35,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedDate = box.get('birthDate');
     _selectedHour = box.get('birthHour');
 
-    // Cargamos el estado Premium guardado (por defecto false)
     _isPremium = settingsBox.get('isPremium', defaultValue: false);
 
-    // Si el usuario ya es Premium, el perfil se desbloquea automáticamente
     if (_isPremium) {
       _isUnlocked = true;
     }
   }
 
-  void _simularVideo() {
-    setState(() {
-      _videosVistos++;
-      if (_videosVistos >= 2) {
-        _isUnlocked = true;
-      }
-    });
-
+  // Ahora usa anuncios reales o de prueba con validación estricta de conexión
+  void _ejecutarVideoReal() {
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Energía canalizada (${_videosVistos}/2)"),
-          backgroundColor: Colors.amber.shade900,
+        const SnackBar(
+          content: Text("Invocando oráculo visual..."),
+          duration: Duration(seconds: 1),
         )
+    );
+
+    AdManager.showRewardedAd(
+        onRewardEarned: () {
+          setState(() {
+            _videosVistos++;
+            if (_videosVistos >= 2) {
+              _isUnlocked = true;
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Energía canalizada (${_videosVistos}/2)"),
+                backgroundColor: Colors.amber.shade900,
+              )
+          );
+        },
+        onAdNotAvailable: () { // Protección estricta en el perfil si no hay red o carga
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("🍀 No se pudo cargar el oráculo. Requiere conexión a internet activa."),
+                backgroundColor: Colors.redAccent,
+              )
+          );
+        }
     );
   }
 
@@ -193,7 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                onPressed: _simularVideo,
+                onPressed: _ejecutarVideoReal, // LLama a la lógica de AdMob blindada
                 icon: const Icon(Icons.play_circle_fill),
                 label: Text("VER VIDEO PARA EDITAR (${_videosVistos}/2)"),
               )
@@ -221,31 +241,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(color: Colors.white24),
             const SizedBox(height: 20),
 
-            // MODIFICADO: SECCIÓN PREMIUM INTERNA PARA PRUEBAS Y VALIDACIÓN NATIVA
+            // SECCIÓN PREMIUM REAL CONECTADA A GOOGLE PLAY BILLING
             const Text("MEMBRESÍA",
                 style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.2)),
-            const SizedBox(height: 10),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text("Modo Premium (Cero Anuncios)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              subtitle: const Text("Activa para remover anuncios de recarga, signos y series místicas", style: TextStyle(fontSize: 11, color: Colors.grey)),
-              activeColor: Colors.amber,
-              value: _isPremium,
-              onChanged: (bool value) {
-                setState(() {
-                  _isPremium = value;
-                  _isUnlocked = value ? true : (_videosVistos >= 2);
-                  // Guardamos el estado directamente en la caja de Hive 'settings'
-                  Hive.box('settings').put('isPremium', value);
-                });
+            const SizedBox(height: 15),
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(value ? "¡Modo Premium Activado!" : "Modo Premium Desactivado"),
-                      backgroundColor: value ? Colors.green.shade800 : Colors.red.shade800,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: _isPremium ? Colors.green.withOpacity(0.5) : Colors.amber.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                          _isPremium ? "Acceso Premium Activo" : "Pase Infinito (Premium)",
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
+                      ),
+                      Icon(
+                          _isPremium ? Icons.verified_user : Icons.workspace_premium,
+                          color: _isPremium ? Colors.green : Colors.amber
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                      _isPremium
+                          ? "Gracias por apoyar el proyecto. Disfrutas de LuckyPass Hub sin interrupciones."
+                          : "Remueve de forma permanente los anuncios para recargar energía, ver series y revelar signos zodiacales.",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)
+                  ),
+                  const SizedBox(height: 20),
+
+                  if (!_isPremium)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber.shade700,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 45),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () async {
+                        // Invoca la pasarela nativa de pagos de Google Play
+                        await PurchaseManager.buyPremium();
+                        // Refrescamos el estado de la pantalla leyendo la respuesta de Hive
+                        setState(() {
+                          _isPremium = Hive.box('settings').get('isPremium', defaultValue: false);
+                          if (_isPremium) _isUnlocked = true;
+                        });
+                      },
+                      icon: const Icon(Icons.shopping_bag),
+                      label: const Text("ADQUIRIR ACCESO PREMIUM", style: TextStyle(fontWeight: FontWeight.bold)),
                     )
-                );
-              },
+                  else
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.green.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+                        child: const Text("ESTADO: INFINITO", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 20),
@@ -278,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.gavel, color: Colors.amberAccent),
               title: const Text("Términos y Condiciones", style: TextStyle(fontSize: 14)),
               subtitle: const Text("Aviso legal y Juego Responsable", style: TextStyle(fontSize: 11, color: Colors.grey)),
-              onTap: () => AppDialogs.showOnlyTerms(context), // LLAMA A LA FUNCIÓN CORRECTA
+              onTap: () => AppDialogs.showOnlyTerms(context),
             ),
           ],
         ),
